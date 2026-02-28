@@ -2,6 +2,7 @@
 .PHONY: all clean
 
 all: game
+	chmod +x game
 	./game
 
 game: main.cpp
