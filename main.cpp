@@ -6,7 +6,7 @@ const int SUBSTEPS = 8;
 const int screenWidth = 1280;
 const int screenHeight = 800;
 const float GRAVITY = 0;
-const int NUM_PARTICLES = 2;
+const int NUM_PARTICLES = 5;
 
 struct Particle{
     Vector2 pos;
@@ -67,16 +67,27 @@ void handle_wall_collision(Particle &p) {
         }
 }
 
-// void handle_ball_collision(Particle &p) {
-//     // Check for particle collisions
-//     if (&p.pos.x + &p.radius >= &p.pos.x + &p.radius)
-// }
+bool is_colliding(Particle& p_a, Particle& p_b){
+    return (Vector2Distance(p_a.pos, p_b.pos) <= (p_a.radius + p_b.radius));
+}
 
 void update(float dt) {
     for (Particle &p : particles) {
         update_pos(p, dt);
         handle_wall_collision(p);
 }
+
+    for(int i{0}; i < NUM_PARTICLES - 1; i++) {
+        for (int j{i + 1}; j < NUM_PARTICLES; j++) {
+            if (is_colliding(particles[i], particles[j])) {
+                Vector3 color_a = ColorToHSV(particles[i].c);
+                Vector3 color_b = ColorToHSV(particles[j].c);
+
+                particles[i].c = ColorFromHSV((float)GetRandomValue(0, 360), 0.8f, 0.9f);
+                particles[j].c = ColorFromHSV((float)GetRandomValue(0, 360), 0.8f, 0.9f);
+            }
+        }
+    }
 }
 
 void draw() {
