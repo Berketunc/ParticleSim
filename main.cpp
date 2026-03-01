@@ -2,7 +2,7 @@
 #include "raylib.h"
 #include "raymath.h"
 
-const int SUBSTEPS = 8;
+const int SUBSTEPS{8};
 const int screenWidth = 1280;
 const int screenHeight = 800;
 const float GRAVITY = 0;
@@ -18,7 +18,7 @@ struct Particle{
     // Constructor
     Particle() {
         pos = { (float)GetRandomValue(0, screenWidth), (float)GetRandomValue(0, screenHeight) };
-        pos_old = {Vector2Subtract(pos, {-1, -1})};
+        pos_old = Vector2Subtract(pos, { (float)GetRandomValue(-2, 2), (float)GetRandomValue(-2, 2) });
         acc = { 0, GRAVITY };
         radius = 20.0f;
         c = ColorFromHSV((float)GetRandomValue(0, 360), 0.8f, 0.9f);
@@ -67,6 +67,22 @@ void handle_wall_collision(Particle &p) {
         }
 }
 
+void handle_particle_collision(Particle& p1, Particle& p2){
+    Vector2 collision_axis = Vector2Subtract(p1.pos, p2.pos);
+    float distance = Vector2Length(collision_axis);
+    float min_dist = p1.radius + p2.radius;
+
+    if (distance < min_dist && distance > 0) {
+        Vector2 normal = Vector2Scale(collision_axis, 1.0f / distance);
+        
+        float overlap = min_dist - distance;
+        
+        Vector2 separation = Vector2Scale(normal, overlap * 0.5f);
+        p1.pos = Vector2Add(p1.pos, separation);
+        p2.pos = Vector2Subtract(p2.pos, separation);
+    }
+}
+
 bool is_colliding(Particle& p_a, Particle& p_b){
     return (Vector2Distance(p_a.pos, p_b.pos) <= (p_a.radius + p_b.radius));
 }
@@ -80,6 +96,7 @@ void update(float dt) {
     for(int i{0}; i < NUM_PARTICLES - 1; i++) {
         for (int j{i + 1}; j < NUM_PARTICLES; j++) {
             if (is_colliding(particles[i], particles[j])) {
+                handle_particle_collision(particles[i], particles[j]);
                 Vector3 color_a = ColorToHSV(particles[i].c);
                 Vector3 color_b = ColorToHSV(particles[j].c);
 
