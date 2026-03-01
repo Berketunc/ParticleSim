@@ -5,7 +5,7 @@
 const int SUBSTEPS{8};
 const int screenWidth = 1280;
 const int screenHeight = 800;
-const float GRAVITY = 0;
+const float GRAVITY = 490.f; // 9.8 ms^2 x 100pixel/m = 980 pixels/s^2
 const int NUM_PARTICLES = 5;
 
 struct Particle{
@@ -29,6 +29,9 @@ struct Particle{
 std::vector<Particle> particles;
 
 void update_pos(Particle &p, float dt) {
+    // Friction
+    float friction = 0.99f;
+
     // Calculate velocity (current position - old position)
     Vector2 velocity = Vector2Subtract(p.pos, p.pos_old);
     
@@ -56,9 +59,14 @@ void handle_wall_collision(Particle &p) {
         }
 
         if (p.pos.y + p.radius >= screenHeight) {
-            float velocity_y = p.pos.y - p.pos_old.y;
+            float bounce = 0.7f;    
+            float wall_friction = 0.95f; 
+
+            float vx = p.pos.x - p.pos_old.x;
+            float vy = p.pos.y - p.pos_old.y;
             p.pos.y = screenHeight - p.radius;
-            p.pos_old.y = p.pos.y + (velocity_y * bounce);
+            p.pos_old.y = p.pos.y + (vy * bounce);
+            p.pos_old.x = p.pos.x - (vx * wall_friction);
         }
         else if (p.pos.y - p.radius <= 0) {
             float velocity_y = p.pos.y - p.pos_old.y;
@@ -74,12 +82,36 @@ void handle_particle_collision(Particle& p1, Particle& p2){
 
     if (distance < min_dist && distance > 0) {
         Vector2 normal = Vector2Scale(collision_axis, 1.0f / distance);
-        
         float overlap = min_dist - distance;
         
-        Vector2 separation = Vector2Scale(normal, overlap * 0.5f);
-        p1.pos = Vector2Add(p1.pos, separation);
-        p2.pos = Vector2Subtract(p2.pos, separation);
+        // Static Resolution prevent overlapping
+        float m1 = p1.radius; // use radius as a proxy for mass
+        float m2 = p2.radius;
+        float mass_ratio1 = m2 / (m1 + m2);
+        float mass_ratio2 = m1 / (m1 + m2);
+
+        p1.pos = Vector2Add(p1.pos, Vector2Scale(normal, overlap * mass_ratio1));
+        p2.pos = Vector2Subtract(p2.pos, Vector2Scale(normal, overlap * mass_ratio2));
+
+        // Dynamic Resolution, bounce
+        Vector2 v1 = Vector2Subtract(p1.pos, p1.pos_old);
+        Vector2 v2 = Vector2Subtract(p2.pos, p2.pos_old);
+        
+        // Relative velocity
+        Vector2 relative_vel = Vector2Subtract(v1, v2);
+        float velocity_along_normal = Vector2DotProduct(relative_vel, normal);
+
+        // Only resolve if they are moving TOWARDS each other
+        if (velocity_along_normal < 0) {
+            float restitution = 0.8f; // 1.0 = perfect bounce, 0.0 = clay
+            float j = -(1.0f + restitution) * velocity_along_normal;
+            j /= (1.0f / m1 + 1.0f / m2);
+
+            Vector2 impulse = Vector2Scale(normal, j);
+            
+            p1.pos_old = Vector2Subtract(p1.pos_old, Vector2Scale(impulse, 1.0f / m1));
+            p2.pos_old = Vector2Add(p2.pos_old, Vector2Scale(impulse, 1.0f / m2));
+        }
     }
 }
 
@@ -129,7 +161,7 @@ int main() {
 
 while (!WindowShouldClose()) {
     float frame_time = GetFrameTime();
-    float dt = frame_time / SUBSTEPS;
+    float dt = (1.0f / 60.0f) / SUBSTEPS;
 
     for(int i{0}; i < SUBSTEPS; i++) {
         // Update frame
