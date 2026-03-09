@@ -6,6 +6,7 @@
 
 class collision {
 public:
+    int collision_count = 0; 
     // Methods to update the simulation
     void update(float dt, int substeps, std::vector<Particle>& particles, int screenW, int screenH);
     

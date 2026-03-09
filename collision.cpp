@@ -36,6 +36,8 @@ void collision::update(float dt, int substeps, std::vector<Particle>& particles,
         for (size_t j = i + 1; j < particles.size(); j++) {
             if (is_colliding(particles[i], particles[j])) {
                 handle_particle_collision(particles[i], particles[j]);
+
+                collision_count++; 
                 
                 // Collision colors
                 particles[i].c = ColorFromHSV((float)GetRandomValue(0, 360), 0.8f, 0.9f);

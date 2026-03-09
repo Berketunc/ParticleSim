@@ -33,6 +33,8 @@ int main() {
         BeginDrawing();
             ClearBackground(BLACK);
             for (const auto& p : particles) p.draw();
+            DrawText(TextFormat("Collisions: %d", col.collision_count), 10, 30, 20, RAYWHITE);
+            DrawText(TextFormat("Particles: %d", (int)particles.size()), 10, 50, 20, RAYWHITE);
             DrawFPS(0, 0);
         EndDrawing();
     }
